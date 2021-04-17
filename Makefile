@@ -1,3 +1,10 @@
+#
+# BIN - cellular automata - majority problem
+# 
+# @author Alena Tesařová (xtesar36)
+# @date 16.4.2021
+#
+
 CPP=g++
 CPPFLAGS=-Wall -std=gnu++11
 

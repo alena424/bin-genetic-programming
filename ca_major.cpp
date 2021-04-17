@@ -12,108 +12,58 @@
 
 using namespace std;
 
-const int rows = 8, cols = 8;
-const int neighborhood = 1; // number of cells from left and right of the main cell that we will compute
-const int cellular_length = 9;
+const int neighborhood = 1;                 // number of cells from left and right of the main cell that will be computed with current cell
+const int cellular_length = 9;              // length of 1D cellular automata
+const int number_of_configurations = 10000; // number of random configuration that will be used to somlue fitness
+const int generation = 10000;               // number of generations
+const int steps = 20;                       // number of steps for cullular automata to count fitness
+const int lambda = 5;
+const int mutations = 2;                               // number of mutation of random position in rules
+const int rules_length = pow(2, 2 * neighborhood + 1); // number of rules (combination of zeros and ones in neighborhood))
 
-// ocekavany vstup
-// const int expected[rows * cols] = {
-//     0, 0, 0, 0, 0, 0, 0, 0,
-//     0, 0, 0, 0, 0, 0, 0, 0,
-//     0, 0, 0, 0, 0, 0, 0, 0,
-//     0, 0, 0, 1, 1, 1, 0, 0,
-//     0, 0, 0, 0, 0, 0, 0, 0,
-//     0, 0, 0, 0, 0, 0, 0, 0,
-//     0, 0, 0, 0, 0, 0, 0, 0,
-//     0, 0, 0, 0, 0, 0, 0, 0};
-
-void print_configuration(ostream &out, int *dataset)
+/**
+ * @brief Print rules in JSON format to web browser application
+ * @param out output
+ * @param rules rules to be printed in data field of json
+ **/
+void printRules(ostream &out, int *rules, int length)
 {
-
-    int *ds = dataset;
-    out << rows << " " << cols << endl;
-
-    for (int r = 0; r < rows; r++)
-    {
-        for (int c = 0; c < cols; c++)
-        {
-            out << *(dataset++) << " ";
-        }
-        out << endl;
-    }
-
-    // JSON format too
-    dataset = ds;
-
     out << "JSON data: " << endl
-        << "{";
-    for (int r = 0; r < rows; r++)
+        << "{"
+        << "\"neighborhood\":" << neighborhood << ","
+        << "\"cellular_length\":" << cellular_length << ",";
+    out << "\""
+        << "data"
+        << "\":[";
+
+    for (int i = 0; i < length; i++)
     {
-        if (r)
-            out << ",";
-        out << "\"" << r << "\":[";
-
-        int wasout = 0;
-        for (int c = 0; c < cols; c++)
+        out << rules[i];
+        if (i != length - 1)
         {
-            if (*(dataset++))
-            {
-                if (wasout)
-                    out << ",";
-                out << c;
-                wasout = 1;
-            }
+            cout << ", ";
         }
-        out << "]";
     }
-
-    out << "}" << endl
-        << endl;
-    ;
+    out << "]}" << endl;
 }
 
-/** 
- * Vypocet fitness pro kandidatni reseni
- * sim - simulator (nutne nastavit a spustit)
- * candidate - 1D pole kandidatniho reseni
- * steps - pocet kroku, po ktery se bude provadet simulace
- * vraci dvojici integeru fitness a best_step
- *    fitness je v rozsahu 0 az rows * cols, kdy rows * cols je nejlepsi (funkcni reseni)
- *    best_step je cislo kroku, kdy se dosahlo nejvyssi hodnoty fitness, je 0 az steps
- */
-std::tuple<int, int> calculate_fitness(CAsim &sim, int *candidateRule, int steps, int expectedValue)
+/**
+ * @brief Print one row of specific length
+ * @param arr array that we want to print
+ * @param lengthArr the length of array
+ **/
+void printRow(int *arr, int lengthArr)
 {
-    // nastavit candidate jako pocatecni stav v simulatori (fce sim.set_init)
-    sim.set_init(candidateRule);
-
-    // spustit simulator (fce sim.run_sim)
-    sim.run_sim(steps);
-
-    int fitness = 0;
-    int fitnessMax = 0;
-    int best_step = 0; // v kterem kroku simulace byla nejlepsi fintess nalezena
-
-    // projit vsechny korky, pomoci funkce sim.get_state ziskat stav
-    int *data = nullptr;
-    for (int j = 1; j < steps; j++)
+    cout << "[";
+    for (int i = 0; i < lengthArr; i++)
     {
-        data = sim.get_states(j);
-        fitness = 0;
-        for (int i = 0; i < cellular_length; i++)
+        cout << arr[i];
+        if (i != lengthArr - 1)
         {
-            if (data[i] == expectedValue)
-            {
-                fitness++;
-            }
-        }
-        if (fitness > fitnessMax)
-        {
-            fitnessMax = fitness;
-            best_step = j;
+            cout << ", ";
         }
     }
-    // navrat dvou hodnot
-    return std::make_tuple(fitnessMax, best_step);
+    cout << "]" << endl;
 }
 /**
  * @brief Compute major value in config array
@@ -141,73 +91,91 @@ int computeMajorValue(int *configArr)
     return 0;
 }
 
-void printRow(int *arr, int lengthArr)
+/**
+ * @brief Compute fitness for candidate solution
+ * @param sim simulator (must be init and run)
+ * @param candidateRule 1D array with proposed ruke
+ * @param steps number of steps for which we will run the simulation
+ * @return [fitness, best step] - fitness is in range [0-length_config_arr * number_of_configurations]
+ **/
+std::tuple<int, int> calculate_fitness(CAsim &sim, int *candidateRule, int steps)
 {
-    cout << "[";
-    for (int i = 0; i < lengthArr; i++)
+    // set configuration array
+    int configuration[cellular_length];
+    int fitnessMaxFinal = 0; // max fitness counter (sum of all fitness from all configurations)
+    int best_step = 0;       // the step in which we found the best solution
+    for (int config = 0; config < number_of_configurations; config++)
     {
-        cout << arr[i];
-        if (i != lengthArr - 1)
+        // random init configuration
+        for (int j = 0; j < cellular_length; j++)
+            configuration[j] = rand() % 2;
+
+        // cout << "config: ";
+        // printRow(configuration, cellular_length);
+        // cout << "Rules: ";
+        // printRow(candidateRule, 8);
+
+        int expectedValue = computeMajorValue(configuration); // expected value will be one if there is more ones, 0 otherwise
+        sim.set_init(candidateRule, configuration);           // init simulator with init configuration and candidte rule
+        sim.run_sim(steps);                                   // run simulator (fce sim.run_sim)
+
+        int fitness = 0;
+        int fitnessMax = 0;
+        int *data = nullptr; // pointer to computed data
+        for (int j = 1; j < steps; j++)
         {
-            cout << ", ";
+            data = sim.get_states(j);
+            fitness = 0;
+            for (int i = 0; i < cellular_length; i++)
+            {
+                if (data[i] == expectedValue)
+                {
+                    fitness++; // increment fitness if values match
+                }
+            }
+            if (fitness > fitnessMax) // save the best fitness score
+            {
+                fitnessMax = fitness;
+                best_step = j;
+            }
         }
+        fitnessMaxFinal += fitnessMax;
     }
-    cout << "]" << endl;
+    // return two values - fitness and the best step
+    return std::make_tuple(fitnessMaxFinal, best_step);
 }
 
 int main(int argc, char **argv)
 {
-    const int generation = 200;
-    const int steps = 20;
-    const int lambda = 5;
-    const int mutations = 0;
-
-    const int rules_length = pow(2, 2 * neighborhood + 1); // number of rules (compination of zeros and ones in neighborhood))
-    cout << rules_length;
     srand(time(NULL));
 
-    // geneticky algoritmus mu+lambda: vezme se mi nejlepsi,
-    // z toho se vygeneruje dalsich lambda konfiguraci. Vybere
-    // se zase mu nejlepsich
-
-    int parent[cellular_length];
     int rules[rules_length];
     int offsprings[lambda][rules_length];
 
     int parent_fit;
     int offsprings_fits[lambda];
 
-    // vytvoreni nahodne prechodove funkce
+    // create random rule
     for (int j = 0; j < rules_length; j++)
         rules[j] = rand() % 2;
 
-    for (int j = 0; j < cellular_length; j++)
-        parent[j] = rand() % 2;
+    // cout << "Rules: ";
+    // printRow(rules, rules_length);
 
-    cout << "config: ";
-    printRow(parent, cellular_length);
-    cout << "Rules: ";
-    printRow(rules, rules_length);
-
-    int expectedValue = computeMajorValue(parent);
-
-    cout << "Expected is: " << expectedValue << endl;
-
-    // novy simulator 4x4
-    CAsim sim(cellular_length, rules_length, parent, neighborhood, steps);
+    // init new simulator
+    CAsim sim(cellular_length, neighborhood, steps);
 
     int br; // integer pro ukladani kroku, kdy se naslo nejlepsi reseni; casto jej nepotrebujeme
-    std::tie(parent_fit, br) = calculate_fitness(sim, rules, steps, expectedValue);
+    std::tie(parent_fit, br) = calculate_fitness(sim, rules, steps);
 
     cout << "Initial:  fitness " << parent_fit << endl;
-    // return 0;
 
     int gen = 0;
     for (gen = 0; gen < generation; gen++)
     {
-        if (parent_fit == cellular_length)
+        if (parent_fit == cellular_length * number_of_configurations)
         {
-            cout << "solution found!" << endl;
+            cout << "Solution found!" << endl;
             break;
         }
 
@@ -215,7 +183,7 @@ int main(int argc, char **argv)
 
         for (int l = 0; l < lambda; l++)
         {
-            // kopie rodice
+            // copy of parent
             memcpy(offsprings[l], rules, sizeof(int) * rules_length);
 
             // provedeni mutaci
@@ -224,7 +192,7 @@ int main(int argc, char **argv)
                 offsprings[l][rand() % (rules_length)] ^= 0x01; // nahodne zmutujeme nektera cisla
             }
 
-            std::tie(offsprings_fits[l], br) = calculate_fitness(sim, offsprings[l], steps, expectedValue); // provedeni simulace
+            std::tie(offsprings_fits[l], br) = calculate_fitness(sim, offsprings[l], steps); // provedeni simulace
 
             if (offsprings_fits[l] >= parent_fit && (next_parent < 0 || offsprings_fits[l] > offsprings_fits[next_parent]))
             {
@@ -255,12 +223,10 @@ int main(int argc, char **argv)
     cout << "Search ended" << endl;
     cout << "Best fitness " << parent_fit << " in " << gen << " generations " << endl;
 
-    // print_configuration(cout, parent);
-    cout << "config: ";
-    printRow(parent, cellular_length);
+    printRules(cout, rules, rules_length);
     cout << "Rules: ";
     printRow(rules, rules_length);
     int bf;
-    std::tie(bf, br) = calculate_fitness(sim, rules, steps, expectedValue);
-    cout << "Best fitness " << bf << "/" << (cellular_length) << " in step " << br << endl;
+    std::tie(bf, br) = calculate_fitness(sim, rules, steps);
+    cout << "Best fitness " << bf << "/" << (cellular_length * number_of_configurations) << " in step " << br << endl;
 }

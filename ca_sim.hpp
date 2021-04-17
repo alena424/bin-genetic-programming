@@ -1,3 +1,10 @@
+/**
+ * BIN - cellular automata - majority problem
+ * 
+ * @author Alena Tesařová (xtesar36)
+ * @date 16.4.2021
+ **/
+
 #include <cstdlib>
 #include <cstdio>
 #include <iostream>
@@ -5,16 +12,16 @@
 #include <cstring>
 
 /***
- * Objekt pro simulaci celuarniho automatu pomoci pravidel Game of Life
+ * Class for simulation of of celular automata with specific rule and configuration
  */
 class CAsim
 {
 public:
-	CAsim(int length, int rules_length, int *init_config, int neighborhood, int steps_max) : length_(length), rules_length_(rules_length), neighborhood_(neighborhood), steps_max_(steps_max)
+	CAsim(int length, int neighborhood, int steps_max) : length_(length), neighborhood_(neighborhood), steps_max_(steps_max)
 	{
 		states_mem_ = new int[steps_max_ * length_];
-		memcpy(states_mem_, init_config, sizeof(int) * length_);
 		rules_ = new int[rules_length];
+		rules_length = pow(2, 2 * neighborhood + 1);
 	}
 
 	~CAsim()
@@ -23,26 +30,29 @@ public:
 	}
 
 	/** 
-	 * nastaveni pocatecniho stavu simulace
+	 * @brief Set initial simulation state
+	 * @param rules behavior of cellular automata (rules)
+	 * @param config configuration
 	 **/
-	void set_init(int *rules)
+	void set_init(int *rules, int *config)
 	{
 		memcpy(rules_, rules, sizeof(int) * rules_length_);
+		memcpy(states_mem_, config, sizeof(int) * length_);
 	}
 
 	/***
-     * Vrati 1D pole o delce rows * cols
+     * @brief Returns 1D array of length length_
+	 * @param step current step of simulation
      **/
 	int *get_states(int step)
 	{
-
 		assert(step >= 1 && step < steps_max_); // nebudeme cist nulty stav
-
 		return states_mem_ + (step * length_);
 	}
 
 	/***
-	 * Spusteni simulace na urcity pocet kroku
+	 * @brief Run simulation for specific amount of steps
+	 * @param steps number of steps
 	 */
 	void run_sim(int steps)
 	{
@@ -61,110 +71,54 @@ public:
 	}
 
 private:
-	int length_, rules_length_;
+	int length_;	   // length of configuration
+	int rules_length_; // rules length that depends on the neighborhood
+	int *rules_;	   // 1d array with rules
+	int neighborhood_; // number of cells from left and right of the main cell that will be computed with current cell
+	int *states_mem_;  // all states/configurations of one simulation
+	int steps_max_;	   // maximum number of steps
 
-	int *rules_;
-	int neighborhood_;
-	int *states_mem_;
-	int states_count_;
-	int steps_max_;
-
-	// RULES
-	// Any live cell with fewer than two live neighbours dies, as if caused by under-population.
-	// Any live cell with two or three live neighbours lives on to the next generation.
-	// Any live cell with more than three live neighbours dies, as if by overcrowding.
-	// Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
-	void applyRules(int *grid, int *nextGrid, int elemIndex)
+	/**
+	 * @brief Apply rule to specific element 
+	 * @param cells 1D int array of current cells
+	 * @param nextCells 1D int array of next cells (after rules are applied)
+	 * @param elemIndex index if array that will be computed depending all on its own state and state of its neighbors
+	 **/
+	void applyRules(int *cells, int *nextCells, int elemIndex)
 	{
-
-		int ruleIndex = findRuleIndex(grid, elemIndex);
+		int ruleIndex = findRuleIndex(cells, elemIndex);
 		// std::cout << "elemIndex is: " << elemIndex << ", ruleIndex is: " << ruleIndex << ", result: " << rules_[ruleIndex] << std::endl;
-		nextGrid[elemIndex] = rules_[ruleIndex];
-		// if (grid[elemIndex * cols_ + col] == 1)
-		// {
-		// 	if (numNeighbors < 2)
-		// 	{
-		// 		nextGrid[elemIndex * cols_ + col] = 0;
-		// 	}
-		// 	else if (numNeighbors == 2 || numNeighbors == 3)
-		// 	{
-		// 		nextGrid[elemIndex * cols_ + col] = 1;
-		// 	}
-		// 	else if (numNeighbors > 3)
-		// 	{
-		// 		nextGrid[elemIndex * cols_ + col] = 0;
-		// 	}
-		// }
-		// else if (grid[elemIndex * cols_ + col] == 0)
-		// {
-		// 	if (numNeighbors == 3)
-		// 	{
-		// 		nextGrid[elemIndex * cols_ + col] = 1;
-		// 	}
-		// }
+		nextCells[elemIndex] = rules_[ruleIndex];
 	}
 
-	// int getAddr(int r, int c)
-	// {
-	// 	return r * cols_ + c;
-	// }
-
-	/***
-	 * modulo vracejici positivni vysledek (-1 % n = n - 1)
-	 */
-	// int posmod(int a, int b)
-	// {
-	// 	int ret = a % b;
-	// 	if (ret < 0)
-	// 		ret += b;
-	// 	return ret;
-	// }
-
-	int gridValue(int *grid, int index)
+	/**
+	 * @brief Control borders
+	 * @param cells 1D int array of current cellular automata
+	 * @param index elemtn index for which we search for the rule
+	 **/
+	int cellValue(int *grid, int index)
 	{
 		if (index < 0 || index >= length_)
 		{
 			return 0;
 		}
 		return grid[index];
-	}
-
-	int findRuleIndex(int *grid, int index)
+	} // end of cellValue
+	/**
+	 * @brief Find rule index that should be apply to specific index of celullar automata
+	 * @param cells 1D int array of current cellular automata
+	 * @param index elemtn index for which we search for the rule
+	 **/
+	int findRuleIndex(int *cells, int index)
 	{
-		//int ruleIndex[2 * _neighborhood + 1]; // Left State Right = (2*L/R + 1 for State)
-		int ruleIndex = 0;
-		int j = 1; // for indexing ruleIndex
-		for (int i = index - neighborhood_; i <= index + neighborhood_; i++)
+		int ruleIndex = 0;													 // calculated rule index as sum of pows of 2
+		int j = 1;															 // for indexing ruleIndex
+		for (int i = index + neighborhood_; i >= index - neighborhood_; i--) // for throw all the neighbors
 		{
-			//ruleIndex[j] = grid[i];
-			ruleIndex += gridValue(grid, i) * j;
+			ruleIndex += cellValue(cells, i) * j;
 			j = j + j; // 1, 2, 4, 8, 16 ...
 		}
-		return ruleIndex;
-	}
 
-	/**
-	 * zjisteni poctu zivych sousedu
-	 */
-	// int countNeighbors(int *grid, int row, int col)
-	// {
-	// 	int count = 0;
-	// 	if (grid[getAddr(posmod(row - 1, length_), col)] == 1)
-	// 		count++;
-	// 	if (grid[getAddr(posmod(row - 1, length_), posmod(col - 1, cols_))] == 1)
-	// 		count++;
-	// 	if (grid[getAddr(posmod(row - 1, length_), posmod(col + 1, cols_))] == 1)
-	// 		count++;
-	// 	if (grid[getAddr(row, posmod(col - 1, cols_))] == 1)
-	// 		count++;
-	// 	if (grid[getAddr(row, posmod(col + 1, cols_))] == 1)
-	// 		count++;
-	// 	if (grid[getAddr(posmod(row + 1, length_), col)] == 1)
-	// 		count++;
-	// 	if (grid[getAddr(posmod(row + 1, length_), posmod(col - 1, cols_))] == 1)
-	// 		count++;
-	// 	if (grid[getAddr(posmod(row + 1, length_), posmod(col + 1, cols_))] == 1)
-	// 		count++;
-	// 	return count;
-	// }
+		return ruleIndex;
+	} // end of findRuleIndex
 };
