@@ -92,6 +92,24 @@ int computeMajorValue(int *configArr)
 }
 
 /**
+ * @brief Compare 2 arrays if they are the same
+ * @param in first array
+ * @param out second array
+ * @param length the length of arrays (must be the same size)
+ **/
+bool isSameArray(int *in, int *out, int length)
+{
+    for (int i = 0; i < length; i++)
+    {
+        if (in[i] != out[i])
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
  * @brief Compute fitness for candidate solution
  * @param sim simulator (must be init and run)
  * @param candidateRule 1D array with proposed ruke
@@ -121,9 +139,15 @@ std::tuple<int, int> calculate_fitness(CAsim &sim, int *candidateRule, int steps
 
         int fitness = 0;
         int fitnessMax = 0;
-        int *data = nullptr; // pointer to computed data
+        int *data = nullptr;         // pointer to computed data
+        int *previousData = nullptr; // pointer to computed data
+        bool stable = false;
         for (int j = 1; j < steps; j++)
         {
+            if (isSameArray(previousData, sim.get_states(j), cellular_length))
+            {
+                stable = true;
+            }
             data = sim.get_states(j);
             fitness = 0;
             for (int i = 0; i < cellular_length; i++)
@@ -138,8 +162,13 @@ std::tuple<int, int> calculate_fitness(CAsim &sim, int *candidateRule, int steps
                 fitnessMax = fitness;
                 best_step = j;
             }
+            previousData = data;
         }
-        fitnessMaxFinal += fitnessMax;
+        // we want only stable rules
+        if (stable)
+        {
+            fitnessMaxFinal += fitnessMax;
+        }
     }
     // return two values - fitness and the best step
     return std::make_tuple(fitnessMaxFinal, best_step);
