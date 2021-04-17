@@ -8,19 +8,17 @@
 #include <iostream>
 #include <tuple>
 #include <math.h>
+#include "params.hpp"
 #include "ca_sim.hpp"
 
 using namespace std;
 
-const int neighborhood = 1;                // number of cells from left and right of the main cell that will be computed with current cell
-const int cellular_length = 9;             // length of 1D cellular automata
-const int number_of_configurations = 1000; // number of random configuration that will be used to somlue fitness, space 2^cellular_length
-const int generation = 50;                 // number of generations
-const int steps = 30;                      // number of steps for cullular automata to count fitness
-const int lambda = 100;
-const int mutations = 2;                               // number of mutation of random position in rules
-const int rules_length = pow(2, 2 * neighborhood + 1); // number of rules (combination of zeros and ones in neighborhood))
-int statistics[2];                                     // counting major black and white for statistics
+// population - only odd size
+GA_chromosome population[POPSIZE];
+GA_chromosome next_population[POPSIZE];
+const unsigned int unit = 100; // unit
+GA_chromosome best_population; // the best solution
+UINT best_ever;                // fitness of the best one
 /**
  * @brief Print rules in JSON format to web browser application
  * @param out output
@@ -30,9 +28,9 @@ void printRules(ostream &out, int *rules, int length)
 {
     out << "JSON data: " << endl
         << "{"
-        << "\"neighborhood\":" << neighborhood << ", "
-        << "\"cellular_length\":" << cellular_length << ", "
-        << "\"steps\":" << steps << ", ";
+        << "\"neighborhood\":" << NEIGHBORHOOD << ", "
+        << "\"cellular_length\":" << GLENGTH << ", "
+        << "\"steps\":" << STEPS << ", ";
     out << "\""
         << "data"
         << "\": [";
@@ -74,7 +72,7 @@ int computeMajorValue(int *configArr)
 {
     int counterOnes = 0;
     int counterZeros = 0;
-    for (int i = 0; i < cellular_length; i++)
+    for (int i = 0; i < GLENGTH; i++)
     {
         if (configArr[i])
         {
@@ -115,23 +113,23 @@ bool isSameArray(int *in, int *out, int length)
  * @param sim simulator (must be init and run)
  * @param candidateRule 1D array with proposed ruke
  * @param steps number of steps for which we will run the simulation
- * @return [fitness, best step] - fitness is in range [0-length_config_arr * number_of_configurations]
+ * @return [fitness, best step] - fitness is in range [0-length_config_arr * NUM_CONFIG]
  **/
-std::tuple<int, int> calculate_fitness(CAsim &sim, int *candidateRule, int steps)
+int calculate_fitness(CAsim &sim, int *candidateRule)
 {
     // set configuration array
-    int configuration[cellular_length];
+    int configuration[GLENGTH];
     int fitnessMaxFinal = 0; // max fitness counter (sum of all fitness from all configurations)
-    int best_step = 0;       // the step in which we found the best solution
+    // int best_step = 0;       // the step in which we found the best solution
 
-    for (int config = 0; config < number_of_configurations; config++)
+    for (int config = 0; config < NUM_CONFIG; config++)
     {
         // random init configuration
-        for (int j = 0; j < cellular_length; j++)
+        for (int j = 0; j < GLENGTH; j++)
             configuration[j] = rand() % 2;
 
         // cout << "config: ";
-        // printRow(configuration, cellular_length);
+        // printRow(configuration, GLENGTH);
         // cout << "Rules: ";
         // printRow(candidateRule, 8);
 
@@ -139,7 +137,7 @@ std::tuple<int, int> calculate_fitness(CAsim &sim, int *candidateRule, int steps
         statistics[expectedValue]++;
         // cout << "expected: " << expectedValue << endl;
         sim.set_init(candidateRule, configuration); // init simulator with init configuration and candidte rule
-        sim.run_sim(steps);                         // run simulator (fce sim.run_sim)
+        sim.run_sim(STEPS);                         // run simulator (fce sim.run_sim)
 
         int fitness = 0;
         int fitnessMax = 0;
@@ -147,16 +145,16 @@ std::tuple<int, int> calculate_fitness(CAsim &sim, int *candidateRule, int steps
         int *previousData = nullptr; // pointer to computed data
         int *pomData = nullptr;      // pointer to computed data
         bool stable = false;
-        for (int j = 1; j < steps; j++)
+        for (int j = 1; j < STEPS; j++)
         {
             pomData = sim.get_states(j);
-            if (previousData && isSameArray(previousData, pomData, cellular_length))
+            if (previousData && isSameArray(previousData, pomData, GLENGTH))
             {
                 stable = true; // we want the result to be stable and not recursive
             }
             data = pomData;
             fitness = 0;
-            for (int i = 0; i < cellular_length; i++)
+            for (int i = 0; i < GLENGTH; i++)
             {
                 if (data[i] == expectedValue)
                 {
@@ -166,107 +164,207 @@ std::tuple<int, int> calculate_fitness(CAsim &sim, int *candidateRule, int steps
             if (fitness > fitnessMax) // save the best fitness score
             {
                 fitnessMax = fitness;
-                best_step = j;
+                // best_step = j;
             }
             previousData = data;
         }
         // we want only stable rules
-        if (stable && fitnessMax == cellular_length)
+        if (stable && fitnessMax == GLENGTH)
         {
             fitnessMaxFinal += fitnessMax;
         }
     }
     // return two values - fitness and the best step
-    return std::make_tuple(fitnessMaxFinal, best_step);
+    return fitnessMaxFinal;
+    // return std::make_tuple(fitnessMaxFinal, best_step);
+}
+
+/**
+ * @brief Generate random number in range [low, high]
+ * @author (c) MICHAL BIDLO, 2011 (VZOROVA IMPLEMENTACE JEDNODUCHEHO GENETICKEHO ALGORITMU) 
+ **/
+UINT urandom(int low, int high)
+{
+    return rand() % (high - low + 1) + low;
+}
+/**
+ * @brief Crossover 2 parents and get 2 crossed children
+ * @author (c) MICHAL BIDLO, 2011 (VZOROVA IMPLEMENTACE JEDNODUCHEHO GENETICKEHO ALGORITMU) 
+ **/
+void crossover(GA_chromosome *parent1, GA_chromosome *parent2,
+               GA_chromosome *child1, GA_chromosome *child2)
+{
+    // zde standardni jednobodove krizeni
+    UINT cpoint = urandom(1, GLENGTH - 1);
+
+    for (UINT i = 0; i < GLENGTH; i++)
+    {
+        if (i < cpoint)
+        {
+            child1->chromosome[i] = parent1->chromosome[i];
+            child2->chromosome[i] = parent2->chromosome[i];
+        }
+        else
+        {
+            child1->chromosome[i] = parent2->chromosome[i];
+            child2->chromosome[i] = parent1->chromosome[i];
+        }
+    }
+}
+
+/**
+ * @brief Mutate
+ * @author (c) MICHAL BIDLO, 2011 (VZOROVA IMPLEMENTACE JEDNODUCHEHO GENETICKEHO ALGORITMU) 
+ **/
+bool mutator(GA_chromosome *genome, UINT _pmut)
+{
+    if (urandom(0, unit) <= _pmut) // mutace s pravdepodobnosti _pmut
+    {
+        for (UINT i = 0; i < MUTAGENES; i++)
+        {
+            UINT g = urandom(0, GLENGTH - 1);
+            genome->chromosome[g] = 1 - genome->chromosome[g]; // gene inversion
+        }
+
+        return 1; // probehla-li mutace, vratim true...
+    }
+
+    return 0; // ...jinak vracim false
+}
+/**
+ * @brief Initialize array with zeros and ones
+ * @author (c) MICHAL BIDLO, 2011 (VZOROVA IMPLEMENTACE JEDNODUCHEHO GENETICKEHO ALGORITMU) 
+ **/
+void initialize(GA_chromosome *genome)
+{
+    for (int i = 0; i < rules_length; i++)
+        genome->chromosome[i] = urandom(0, 1);
 }
 
 int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    int rules[rules_length];
-    int offsprings[lambda][rules_length];
+    // int rules[rules_length];
+    // int offsprings[lambda][rules_length];
+    best_ever = 0;
 
-    int parent_fit;
-    int offsprings_fits[lambda];
+    // int parent_fit;
+    // int offsprings_fits[lambda];
 
     // create random rule
-    for (int j = 0; j < rules_length; j++)
-    {
-        rules[j] = rand() % 2;
-    }
+    // for (int j = 0; j < rules_length; j++)
+    // {
+    //     rules[j] = rand() % 2;
+    // }
 
     // cout << "Rules: ";
     // printRow(rules, rules_length);
 
-    CAsim sim(cellular_length, neighborhood, steps); // init new simulator
+    CAsim sim(GLENGTH, NEIGHBORHOOD, STEPS); // init new simulator
 
-    int br; // integer pro ukladani kroku, kdy se naslo nejlepsi reseni; casto jej nepotrebujeme
-    std::tie(parent_fit, br) = calculate_fitness(sim, rules, steps);
+    // int br; // integer pro ukladani kroku, kdy se naslo nejlepsi reseni; casto jej nepotrebujeme
+    // parent_fit = calculate_fitness(sim, rules);
     // return 0;
 
-    cout << "Initial:  fitness " << parent_fit << endl;
-    int best_solution = cellular_length * number_of_configurations;
+    // cout << "Initial:  fitness " << parent_fit << endl;
+    UINT max_fitness = GLENGTH * NUM_CONFIG;
+    GA_chromosome ind1_new, ind2_new;
+    UINT i1;
+    // initializace population
+    for (int i = 0; i < POPSIZE; i++)
+    {
+        initialize(&population[i]);
+        population[i].evaluate = 1;
+    }
 
     int gen = 0;
-    for (gen = 0; gen < generation; gen++)
+    for (gen = 0; gen < GENERATIONS; gen++)
     {
-        if (parent_fit == best_solution)
+        cout << "Running generation number " << gen << endl;
+        // evaluate fitness
+        for (int i = 0; i < POPSIZE; i++)
         {
-            cout << "Solution found!" << endl;
-            break;
+            if (population[i].evaluate)
+            {
+                population[i].fitness = calculate_fitness(sim, population[i].chromosome);
+                if (population[i].fitness >= best_population.fitness)
+                    best_population = population[i];
+                population[i].evaluate = 0;
+            }
         }
+        // elitizmus
+        next_population[0] = best_population; // so far the best found individual
+        GA_chromosome mutant = best_population;
+        mutator(&mutant, unit);
+        next_population[1] = mutant; // mutant of the best
 
-        int next_parent = -1;
-
-        for (int l = 0; l < lambda; l++)
+        // Create new population
+        for (UINT i = 2; i < POPSIZE; i += 2)
         {
-            // copy parent
-            memcpy(offsprings[l], rules, sizeof(int) * rules_length);
+            GA_chromosome *ind1 = NULL, *ind2 = NULL;
+            // turnaments of individuals
+            for (UINT t = 0; t < TOUR; t++)
+            {
+                i1 = urandom(0, POPSIZE - 1);
+                if (ind1 == NULL)
+                    ind1 = &population[i1];
+                else if (ind2 == NULL)
+                    ind2 = &population[i1];
+                else if (population[i1].fitness > ind1->fitness)
+                    ind1 = &population[i1];
+                else if (population[i1].fitness > ind2->fitness)
+                    ind2 = &population[i1];
+            }
 
+            // crossover
+            if (urandom(0, unit) < PCROSS)
+            {
+                crossover(ind1, ind2, &ind1_new, &ind2_new);
+                ind1_new.evaluate = 1;
+                ind2_new.evaluate = 1;
+            }
+            else //no cross over
+            {
+                ind1_new = *ind1;
+                ind2_new = *ind2;
+            }
             // mutation
-            for (int m = 0; m < mutations; m++)
-            {
-                offsprings[l][rand() % (rules_length)] ^= 0x01; // randomly mutate same positions
-            }
-
-            std::tie(offsprings_fits[l], br) = calculate_fitness(sim, offsprings[l], steps); // provedeni simulace
-
-            if (offsprings_fits[l] >= parent_fit && (next_parent < 0 || offsprings_fits[l] > offsprings_fits[next_parent]))
-            {
-                // better or same fitness than the parent from the vest generation
-                next_parent = l;
-            }
+            if (mutator(&ind1_new, PMUT))
+                ind1_new.evaluate = 1;
+            if (mutator(&ind2_new, PMUT))
+                ind2_new.evaluate = 1;
+            // place new generaton to new population
+            next_population[i] = ind1_new;
+            next_population[i + 1] = ind2_new;
         }
 
-        // copying the best
-        if (next_parent >= 0)
+        if (best_population.fitness > best_ever)
         {
-            assert((offsprings_fits[next_parent] >= parent_fit)); // fitness must be better or the same
-            if (offsprings_fits[next_parent] > parent_fit)
-            {
-                cout << "Gen # " << gen << " fitness " << offsprings_fits[next_parent] << endl;
-                printRules(cout, rules, rules_length);
-            }
-
-            memcpy(rules, offsprings[next_parent], sizeof(int) * rules_length);
-            // use precounted fitness
-            parent_fit = offsprings_fits[next_parent];
+            best_ever = best_population.fitness;
+            cout << "Gen # " << gen << " fitness " << best_ever << endl;
+            printRules(cout, best_population.chromosome, rules_length);
+        }
+        if (best_ever == max_fitness)
+        {
+            printf("Solution found; generation=%d\n", gen);
+            // gprint(&best);
+            break;
         }
     }
 
     cout << "Search ended" << endl;
-    cout << "Best fitness " << parent_fit << " in " << gen << " generations " << endl;
+    cout << "Best fitness " << best_ever << " in " << gen << " generations " << endl;
 
-    printRules(cout, rules, rules_length);
+    printRules(cout, best_population.chromosome, rules_length);
     cout << "Rules: ";
-    printRow(rules, rules_length);
-    int bf;
-    std::tie(bf, br) = calculate_fitness(sim, rules, steps);
+    printRow(best_population.chromosome, rules_length);
+    // int br = calculate_fitness(sim, rules);
+    UINT bf = best_population.fitness;
 
-    printf("Best fitness %d/%d (%.2f\%) in step %d\n", bf, best_solution, ((float)bf / (float)best_solution) * 100, br);
+    printf("Best fitness %d/%d (%.2f\%).\n", bf, max_fitness, ((float)bf / (float)max_fitness) * 100);
     printf("Statistics: major black: %d, major white: %d\n", statistics[1], statistics[0]);
     // cout
-    //         << "Best fitness " << bf << "/" << (cellular_length * number_of_configurations) << "(" < < < <
+    //         << "Best fitness " << bf << "/" << (GLENGTH * NUM_CONFIG) << "(" < < < <
     //     ") in step " << br << endl;
 }
