@@ -7,6 +7,7 @@
 
 CPP=g++
 CPPFLAGS=-Wall -std=gnu++11
+.PHONY: ca_major.cpp ca_sim.hpp
 
 all: ca_major
 ca_gp: ca_major.cpp ca_sim.hpp
