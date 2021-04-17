@@ -7,10 +7,10 @@
 
 CPP=g++
 CPPFLAGS=-Wall -std=gnu++11
-.PHONY: ca_major.cpp ca_sim.hpp params.hpp
+.PHONY: ca_major.cpp ca_sim.hpp params.hpp utils.cpp
 
 all: ca_major
-ca_gp: ca_major.cpp ca_sim.hpp params.hpp
+ca_gp: ca_major.cpp ca_sim.hpp params.hpp utils.cpp
 	$(CPP) $(CPPFLAGS) -o $@ $^
 
 zip:
