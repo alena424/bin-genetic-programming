@@ -20,6 +20,7 @@ public:
 	CAsim(int length, int neighborhood, int steps_max) : length_(length), neighborhood_(neighborhood), steps_max_(steps_max)
 	{
 		states_mem_ = new int[steps_max_ * length_];
+		int rules_length = pow(2, 2 * neighborhood + 1);
 		rules_ = new int[rules_length];
 		rules_length = pow(2, 2 * neighborhood + 1);
 	}
