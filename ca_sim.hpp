@@ -21,7 +21,8 @@ public:
 	{
 		states_mem_ = new int[steps_max_ * length_];
 		rules_length_ = pow(2, 2 * neighborhood + 1);
-		rules_ = new int[rules_length_];
+		cout << "length is: " << rules_length;
+		rules_ = new int[rules_length];
 	}
 
 	~CAsim()
@@ -86,8 +87,9 @@ private:
 	 **/
 	void applyRules(int *cells, int *nextCells, int elemIndex)
 	{
+
 		int ruleIndex = findRuleIndex(cells, elemIndex);
-		// std::cout << "elemIndex is: " << elemIndex << ", ruleIndex is: " << ruleIndex << ", result: " << rules_[ruleIndex] << std::endl;
+		std::cout << "elemIndex is: " << elemIndex << ", ruleIndex is: " << findRuleIndex(cells, elemIndex) << ", result: " << rules_[ruleIndex] << std::endl;
 		nextCells[elemIndex] = rules_[ruleIndex];
 	}
 

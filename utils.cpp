@@ -42,7 +42,7 @@ void crossover(GA_chromosome *parent1, GA_chromosome *parent2,
 }
 
 /**
- * @brief Mutate
+ * @brief Mutation with _pmut probability
  * @author (c) MICHAL BIDLO, 2011 (VZOROVA IMPLEMENTACE JEDNODUCHEHO GENETICKEHO ALGORITMU) 
  **/
 bool mutator(GA_chromosome *genome, UINT _pmut)
@@ -62,12 +62,16 @@ bool mutator(GA_chromosome *genome, UINT _pmut)
 }
 /**
  * @brief Initialize array with zeros and ones
- * @author (c) MICHAL BIDLO, 2011 (VZOROVA IMPLEMENTACE JEDNODUCHEHO GENETICKEHO ALGORITMU) 
  **/
 void initialize(GA_chromosome *genome)
 {
+    cout << "rules_length " << rules_length;
     for (int i = 0; i < rules_length; i++)
+    {
         genome->chromosome[i] = urandom(0, 1);
+    }
+    genome->best_step = 0;
+    genome->fitness = 0;
 }
 
 /**
@@ -159,6 +163,9 @@ bool isSameArray(int *in, int *out, int length)
     return true;
 }
 
+/**
+ * @brief Swap pointers
+ **/
 void swapPointers(GA_chromosome **first, GA_chromosome **second)
 {
     GA_chromosome *temp = *first;

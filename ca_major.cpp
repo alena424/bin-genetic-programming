@@ -24,12 +24,12 @@ UINT best_ever;                // fitness of the best one
  * @param steps number of steps for which we will run the simulation
  * @return [fitness, best step] - fitness is in range [0-length_config_arr * NUM_CONFIG]
  **/
-int calculate_fitness(CAsim &sim, int *candidateRule)
+tuple<int, int> calculate_fitness(CAsim &sim, int *candidateRule)
 {
     // set configuration array
     int *configuration = new int[GLENGTH];
     int fitnessMaxFinal = 0; // max fitness counter (sum of all fitness from all configurations)
-    // int best_step = 0;       // the step in which we found the best solution
+    int best_step = 0;       // the step in which we found the best solution
 
     for (int config = 0; config < NUM_CONFIG; config++)
     {
@@ -39,8 +39,10 @@ int calculate_fitness(CAsim &sim, int *candidateRule)
 
         // cout << "config: ";
         // printRow(configuration, GLENGTH);
-        // cout << "Rules: ";
-        // printRow(candidateRule, 8);
+        cout << "Rules: ";
+        printRow(candidateRule, 32);
+        cout << endl;
+        return make_tuple(1, 1);
 
         int expectedValue = computeMajorValue(configuration); // expected value will be one if there is more ones, 0 otherwise
         statistics[expectedValue]++;
@@ -73,7 +75,7 @@ int calculate_fitness(CAsim &sim, int *candidateRule)
             if (fitness > fitnessMax) // save the best fitness score
             {
                 fitnessMax = fitness;
-                // best_step = j;
+                best_step = j;
             }
             previousData = data;
         }
@@ -84,8 +86,8 @@ int calculate_fitness(CAsim &sim, int *candidateRule)
         }
     }
     delete[] configuration;
-    return fitnessMaxFinal;
-    // return std::make_tuple(fitnessMaxFinal, best_step);
+    // return fitnessMaxFinal;
+    return make_tuple(fitnessMaxFinal, best_step);
 }
 
 int main(int argc, char **argv)
@@ -116,7 +118,7 @@ int main(int argc, char **argv)
         {
             if (population[i].evaluate)
             {
-                population[i].fitness = calculate_fitness(sim, population[i].chromosome);
+                std::tie(population[i].fitness, population[i].best_step) = calculate_fitness(sim, population[i].chromosome);
                 if (population[i].fitness >= best_population.fitness)
                 {
                     best_population = population[i];
@@ -168,14 +170,13 @@ int main(int argc, char **argv)
 
             next_population[i] = ind1_new;
             next_population[i + 1] = ind2_new;
-            //population = next_population;
         }
 
         if (best_population.fitness > best_ever)
         {
             best_ever = best_population.fitness;
             cout << "Gen # " << gen << " fitness " << best_ever << endl;
-            printRules(cout, best_population.chromosome, rules_length);
+            // printRules(cout, best_population.chromosome, rules_length);
         }
         if (best_ever == max_fitness)
         {
@@ -194,7 +195,6 @@ int main(int argc, char **argv)
     printRow(best_population.chromosome, rules_length);
     // int br = calculate_fitness(sim, rules);
     UINT bf = best_population.fitness;
-
     printf("Best fitness %d/%d (%.2f%%).\n", bf, max_fitness, ((float)bf / (float)max_fitness) * 100);
     printf("Statistics in training: major black: %d, major white: %d\n", statistics[1], statistics[0]);
     delete[] population;
