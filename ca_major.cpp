@@ -14,9 +14,6 @@
 
 using namespace std;
 
-// population - only odd size
-GA_chromosome population[POPSIZE];
-GA_chromosome next_population[POPSIZE];
 GA_chromosome best_population; // the best solution
 UINT best_ever;                // fitness of the best one
 
@@ -30,7 +27,7 @@ UINT best_ever;                // fitness of the best one
 int calculate_fitness(CAsim &sim, int *candidateRule)
 {
     // set configuration array
-    int configuration[GLENGTH];
+    int *configuration = new int[GLENGTH];
     int fitnessMaxFinal = 0; // max fitness counter (sum of all fitness from all configurations)
     // int best_step = 0;       // the step in which we found the best solution
 
@@ -86,12 +83,16 @@ int calculate_fitness(CAsim &sim, int *candidateRule)
             fitnessMaxFinal += fitnessMax;
         }
     }
+    delete[] configuration;
     return fitnessMaxFinal;
     // return std::make_tuple(fitnessMaxFinal, best_step);
 }
 
 int main(int argc, char **argv)
 {
+    // population - only odd size
+    GA_chromosome *population = new GA_chromosome[POPSIZE];
+    GA_chromosome *next_population = new GA_chromosome[POPSIZE];
     srand(time(NULL));
     best_ever = 0;
 
@@ -109,18 +110,15 @@ int main(int argc, char **argv)
     int gen = 0;
     for (gen = 0; gen < GENERATIONS; gen++)
     {
-        cout << "Running generation number " << gen << endl;
+        // cout << "Running generation number " << gen << endl;
         // evaluate fitness
         for (int i = 0; i < POPSIZE; i++)
         {
             if (population[i].evaluate)
             {
-                // cout << gen << ": eval" << endl;
                 population[i].fitness = calculate_fitness(sim, population[i].chromosome);
                 if (population[i].fitness >= best_population.fitness)
                 {
-                    cout << gen << ": Solution improved: " << population[i].fitness << "/" << best_ever
-                         << endl;
                     best_population = population[i];
                 }
                 population[i].evaluate = 0;
@@ -167,11 +165,10 @@ int main(int argc, char **argv)
                 ind1_new.evaluate = 1;
             if (mutator(&ind2_new, PMUT))
                 ind2_new.evaluate = 1;
-            // place new generaton to new population
+
             next_population[i] = ind1_new;
             next_population[i + 1] = ind2_new;
             //population = next_population;
-            memcpy(population, next_population, sizeof(GA_chromosome) * rules_length);
         }
 
         if (best_population.fitness > best_ever)
@@ -183,9 +180,10 @@ int main(int argc, char **argv)
         if (best_ever == max_fitness)
         {
             printf("Solution found; generation=%d\n", gen);
-            // gprint(&best);
             break;
         }
+        // place new generaton to new population
+        swapPointers(&population, &next_population);
     }
 
     cout << "Search ended" << endl;
@@ -198,8 +196,7 @@ int main(int argc, char **argv)
     UINT bf = best_population.fitness;
 
     printf("Best fitness %d/%d (%.2f%%).\n", bf, max_fitness, ((float)bf / (float)max_fitness) * 100);
-    printf("Statistics: major black: %d, major white: %d\n", statistics[1], statistics[0]);
-    // cout
-    //         << "Best fitness " << bf << "/" << (GLENGTH * NUM_CONFIG) << "(" < < < <
-    //     ") in step " << br << endl;
+    printf("Statistics in training: major black: %d, major white: %d\n", statistics[1], statistics[0]);
+    delete[] population;
+    delete[] next_population;
 }

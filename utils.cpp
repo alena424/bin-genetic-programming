@@ -158,3 +158,10 @@ bool isSameArray(int *in, int *out, int length)
     }
     return true;
 }
+
+void swapPointers(GA_chromosome **first, GA_chromosome **second)
+{
+    GA_chromosome *temp = *first;
+    *first = *second;
+    *second = temp;
+}
