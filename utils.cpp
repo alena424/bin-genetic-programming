@@ -24,9 +24,9 @@ void crossover(GA_chromosome *parent1, GA_chromosome *parent2,
                GA_chromosome *child1, GA_chromosome *child2)
 {
     // zde standardni jednobodove krizeni
-    UINT cpoint = urandom(1, GLENGTH - 1);
+    UINT cpoint = urandom(1, RULES_LENGTH - 1);
 
-    for (UINT i = 0; i < GLENGTH; i++)
+    for (UINT i = 0; i < RULES_LENGTH; i++)
     {
         if (i < cpoint)
         {
@@ -51,7 +51,7 @@ bool mutator(GA_chromosome *genome, UINT _pmut)
     {
         for (UINT i = 0; i < MUTAGENES; i++)
         {
-            UINT g = urandom(0, GLENGTH - 1);
+            UINT g = urandom(0, RULES_LENGTH - 1);
             genome->chromosome[g] = 1 - genome->chromosome[g]; // gene inversion
         }
 
@@ -65,12 +65,10 @@ bool mutator(GA_chromosome *genome, UINT _pmut)
  **/
 void initialize(GA_chromosome *genome)
 {
-    cout << "rules_length " << rules_length;
-    for (int i = 0; i < rules_length; i++)
+    for (int i = 0; i < RULES_LENGTH; i++)
     {
         genome->chromosome[i] = urandom(0, 1);
     }
-    genome->best_step = 0;
     genome->fitness = 0;
 }
 
@@ -84,7 +82,7 @@ void printRules(ostream &out, int *rules, int length)
     out << "JSON data: " << endl
         << "{"
         << "\"neighborhood\":" << NEIGHBORHOOD << ", "
-        << "\"cellular_length\":" << GLENGTH << ", "
+        << "\"cellular_length\":" << CONFIG_LENGTH << ", "
         << "\"steps\":" << STEPS << ", ";
     out << "\""
         << "data"
@@ -127,7 +125,7 @@ int computeMajorValue(int *configArr)
 {
     int counterOnes = 0;
     int counterZeros = 0;
-    for (int i = 0; i < GLENGTH; i++)
+    for (int i = 0; i < CONFIG_LENGTH; i++)
     {
         if (configArr[i])
         {

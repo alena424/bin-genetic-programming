@@ -14,7 +14,7 @@
 
 using namespace std;
 
-GA_chromosome best_population; // the best solution
+GA_chromosome best_chromosome; // the best solution
 UINT best_ever;                // fitness of the best one
 
 /**
@@ -27,22 +27,21 @@ UINT best_ever;                // fitness of the best one
 tuple<int, int> calculate_fitness(CAsim &sim, int *candidateRule)
 {
     // set configuration array
-    int *configuration = new int[GLENGTH];
-    int fitnessMaxFinal = 0; // max fitness counter (sum of all fitness from all configurations)
-    int best_step = 0;       // the step in which we found the best solution
+    int *configuration = new int[CONFIG_LENGTH];
+    int fitnessMaxFinal = 0;  // max fitness counter (sum of all fitness from all configurations)
+    int best_step_global = 0; // average of the best steps
 
     for (int config = 0; config < NUM_CONFIG; config++)
     {
         // random init configuration
-        for (int j = 0; j < GLENGTH; j++)
+        for (int j = 0; j < CONFIG_LENGTH; j++)
             configuration[j] = rand() % 2;
 
         // cout << "config: ";
-        // printRow(configuration, GLENGTH);
-        cout << "Rules: ";
-        printRow(candidateRule, 32);
-        cout << endl;
-        return make_tuple(1, 1);
+        // printRow(configuration, CONFIG_LENGTH);
+        // cout << "Rules: ";
+        // printRow(candidateRule, 32);
+        // cout << endl;
 
         int expectedValue = computeMajorValue(configuration); // expected value will be one if there is more ones, 0 otherwise
         statistics[expectedValue]++;
@@ -56,16 +55,17 @@ tuple<int, int> calculate_fitness(CAsim &sim, int *candidateRule)
         int *previousData = nullptr; // pointer to computed data
         int *pomData = nullptr;      // pointer to computed data
         bool stable = false;
+        int best_step = 0; // the step in which we found the best solution
         for (int j = 1; j < STEPS; j++)
         {
             pomData = sim.get_states(j);
-            if (previousData && isSameArray(previousData, pomData, GLENGTH))
+            if (previousData && isSameArray(previousData, pomData, CONFIG_LENGTH))
             {
                 stable = true; // we want the result to be stable and not recursive
             }
             data = pomData;
             fitness = 0;
-            for (int i = 0; i < GLENGTH; i++)
+            for (int i = 0; i < CONFIG_LENGTH; i++)
             {
                 if (data[i] == expectedValue)
                 {
@@ -80,14 +80,15 @@ tuple<int, int> calculate_fitness(CAsim &sim, int *candidateRule)
             previousData = data;
         }
         // we want only stable rules and the correct ones
-        if (stable && fitnessMax == GLENGTH)
+        if (stable && fitnessMax == CONFIG_LENGTH)
         {
             fitnessMaxFinal += fitnessMax;
         }
+        best_step_global += best_step;
     }
     delete[] configuration;
     // return fitnessMaxFinal;
-    return make_tuple(fitnessMaxFinal, best_step);
+    return make_tuple(fitnessMaxFinal, best_step_global / NUM_CONFIG);
 }
 
 int main(int argc, char **argv)
@@ -98,7 +99,7 @@ int main(int argc, char **argv)
     srand(time(NULL));
     best_ever = 0;
 
-    CAsim sim(GLENGTH, NEIGHBORHOOD, STEPS); // init new simulator
+    CAsim sim(CONFIG_LENGTH, NEIGHBORHOOD, STEPS); // init new simulator
 
     GA_chromosome ind1_new, ind2_new;
     UINT i1;
@@ -106,6 +107,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < POPSIZE; i++)
     {
         initialize(&population[i]);
+        // initialize(&next_population[i]);
         population[i].evaluate = 1;
     }
 
@@ -119,16 +121,16 @@ int main(int argc, char **argv)
             if (population[i].evaluate)
             {
                 std::tie(population[i].fitness, population[i].best_step) = calculate_fitness(sim, population[i].chromosome);
-                if (population[i].fitness >= best_population.fitness)
+                if (population[i].fitness >= best_chromosome.fitness)
                 {
-                    best_population = population[i];
+                    best_chromosome = population[i];
                 }
                 population[i].evaluate = 0;
             }
         }
         // elitizmus
-        next_population[0] = best_population; // so far the best found individual
-        GA_chromosome mutant = best_population;
+        next_population[0] = best_chromosome; // so far the best found individual
+        GA_chromosome mutant = best_chromosome;
         mutator(&mutant, unit);
         next_population[1] = mutant; // mutant of the best
 
@@ -162,7 +164,7 @@ int main(int argc, char **argv)
                 ind1_new = *ind1;
                 ind2_new = *ind2;
             }
-            // mutation
+            //mutation
             if (mutator(&ind1_new, PMUT))
                 ind1_new.evaluate = 1;
             if (mutator(&ind2_new, PMUT))
@@ -172,11 +174,11 @@ int main(int argc, char **argv)
             next_population[i + 1] = ind2_new;
         }
 
-        if (best_population.fitness > best_ever)
+        if (best_chromosome.fitness > best_ever)
         {
-            best_ever = best_population.fitness;
+            best_ever = best_chromosome.fitness;
             cout << "Gen # " << gen << " fitness " << best_ever << endl;
-            // printRules(cout, best_population.chromosome, rules_length);
+            // printRules(cout, best_chromosome.chromosome, RULES_LENGTH);
         }
         if (best_ever == max_fitness)
         {
@@ -190,11 +192,11 @@ int main(int argc, char **argv)
     cout << "Search ended" << endl;
     cout << "Best fitness " << best_ever << " in " << gen << " generations " << endl;
 
-    printRules(cout, best_population.chromosome, rules_length);
+    printRules(cout, best_chromosome.chromosome, RULES_LENGTH);
     cout << "Rules: ";
-    printRow(best_population.chromosome, rules_length);
+    printRow(best_chromosome.chromosome, RULES_LENGTH);
     // int br = calculate_fitness(sim, rules);
-    UINT bf = best_population.fitness;
+    UINT bf = best_chromosome.fitness;
     printf("Best fitness %d/%d (%.2f%%).\n", bf, max_fitness, ((float)bf / (float)max_fitness) * 100);
     printf("Statistics in training: major black: %d, major white: %d\n", statistics[1], statistics[0]);
     delete[] population;

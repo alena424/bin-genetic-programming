@@ -6,7 +6,7 @@
 #
 
 CPP=g++
-CPPFLAGS=-Wall -std=gnu++11
+CPPFLAGS=-Wall -std=gnu++11 -g
 .PHONY: ca_major.cpp ca_sim.hpp params.hpp utils.cpp
 
 all: ca_major
