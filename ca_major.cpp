@@ -62,6 +62,7 @@ tuple<int, int> calculate_fitness(CAsim &sim, int *candidateRule)
             if (previousData && isSameArray(previousData, pomData, CONFIG_LENGTH))
             {
                 stable = true; // we want the result to be stable and not recursive
+                break;
             }
             data = pomData;
             fitness = 0;
@@ -197,7 +198,8 @@ int main(int argc, char **argv)
     printRow(best_chromosome.chromosome, RULES_LENGTH);
     // int br = calculate_fitness(sim, rules);
     UINT bf = best_chromosome.fitness;
-    printf("Best fitness %d/%d (%.2f%%).\n", bf, max_fitness, ((float)bf / (float)max_fitness) * 100);
+    UINT bstep = best_chromosome.best_step;
+    printf("Best fitness %d/%d (%.2f%%) in step (average) %d.\n", bf, max_fitness, ((float)bf / (float)max_fitness) * 100, bstep);
     printf("Statistics in training: major black: %d, major white: %d\n", statistics[1], statistics[0]);
     delete[] population;
     delete[] next_population;
