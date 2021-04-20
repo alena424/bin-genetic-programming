@@ -10,6 +10,65 @@ using namespace std;
 
 /**
  * @brief Generate random number in range [low, high]
+ * @brief Parse input arguments
+ * @author (c) MICHAL BIDLO, 2011 (VZOROVA IMPLEMENTACE JEDNODUCHEHO GENETICKEHO ALGORITMU) 
+ * PARAMS:
+ * -n => NEIGHBORHOOD 1   // number of cells from left and right of the main cell that will be computed with current cell
+ * -c => NUM_CONFIG 2     // number of random configuration that will be used to somlue fitness, space 2^cellular_length
+ * -g => GENERATIONS 30   // number of generations
+ * -p => POPSIZE 1000     // size of population
+ * -s => STEPS 20         // number of steps for cullular automata to count fitness
+ * -l => CONFIG_LENGTH 11 // length of input configuration 
+ * 
+ **/
+int parseArguments(int argc, char **argv)
+{
+    {
+        int c;
+        while ((c = getopt(argc, argv, "n:c:g:p:s:l:")) != -1)
+        {
+            switch (c)
+            {
+            case 'n':
+                NEIGHBORHOOD = atoi(optarg);
+                break;
+            case 'c':
+                NUM_CONFIG = atoi(optarg);
+                break;
+            case 'g':
+                GENERATIONS = atoi(optarg);
+                break;
+            case 'p':
+                POPSIZE = atoi(optarg);
+                break;
+            case 's':
+                STEPS = atoi(optarg);
+                break;
+            case 'l':
+                CONFIG_LENGTH = atoi(optarg);
+                break;
+            case '?':
+                if (optopt == 'c' || optopt == 'n' || optopt == 'g' || optopt == 'p' || optopt == 's' || optopt == 'l')
+                    fprintf(stderr, "Option -%c requires an argument (using the default one)!\n", optopt);
+                else if (isprint(optopt))
+                    fprintf(stderr, "Unknown option `-%c'.\n", optopt);
+                else
+                    fprintf(stderr,
+                            "Unknown option character `\\x%x'.\n",
+                            optopt);
+                return 1;
+            default:
+                abort();
+            }
+        }
+        MAX_FITNESS = CONFIG_LENGTH * NUM_CONFIG;
+        RULES_LENGTH = pow(2, 2 * NEIGHBORHOOD + 1); // number of rules (combination of zeros and ones in neighborhood))
+        return 1;
+    }
+}
+
+/**
+ * @brief Generate random number in range [low, high]
  * @author (c) MICHAL BIDLO, 2011 (VZOROVA IMPLEMENTACE JEDNODUCHEHO GENETICKEHO ALGORITMU) 
  **/
 UINT urandom(int low, int high)
@@ -65,7 +124,8 @@ bool mutator(GA_chromosome *genome, UINT _pmut)
  **/
 void initialize(GA_chromosome *genome)
 {
-    for (int i = 0; i < RULES_LENGTH; i++)
+    genome->chromosome = new int[RULES_LENGTH];
+    for (UINT i = 0; i < RULES_LENGTH; i++)
     {
         genome->chromosome[i] = urandom(0, 1);
     }
@@ -125,7 +185,7 @@ int computeMajorValue(int *configArr)
 {
     int counterOnes = 0;
     int counterZeros = 0;
-    for (int i = 0; i < CONFIG_LENGTH; i++)
+    for (UINT i = 0; i < CONFIG_LENGTH; i++)
     {
         if (configArr[i])
         {
@@ -169,4 +229,13 @@ void swapPointers(GA_chromosome **first, GA_chromosome **second)
     GA_chromosome *temp = *first;
     *first = *second;
     *second = temp;
+}
+
+void save_statistics(ostream &StatsFile, GA_chromosome best_chromosome, UINT best_fitness_generation)
+{
+    StatsFile << best_chromosome.fitness << ","
+              << MAX_FITNESS << ","
+              << ((float)best_chromosome.fitness / (float)MAX_FITNESS) * 100 << ","
+              << best_chromosome.best_step << ","
+              << best_fitness_generation << endl;
 }

@@ -6,8 +6,11 @@
  **/
 
 #include <iostream>
+#include <fstream>
 #include <tuple>
 #include <math.h>
+#include <unistd.h>
+#include <ctype.h>
 #include "params.hpp"
 #include "utils.cpp"
 #include "ca_sim.hpp"
@@ -15,7 +18,9 @@
 using namespace std;
 
 GA_chromosome best_chromosome; // the best solution
-UINT best_ever;                // fitness of the best one
+
+UINT best_fitness_global = 0;    // fitness of the best one
+int best_fitness_generation = 0; // generation with the best fitness (for global analysis)
 
 /**
  * @brief Compute fitness for candidate solution
@@ -31,10 +36,10 @@ tuple<int, int> calculate_fitness(CAsim &sim, int *candidateRule)
     int fitnessMaxFinal = 0;  // max fitness counter (sum of all fitness from all configurations)
     int best_step_global = 0; // average of the best steps
 
-    for (int config = 0; config < NUM_CONFIG; config++)
+    for (UINT config = 0; config < NUM_CONFIG; config++)
     {
         // random init configuration
-        for (int j = 0; j < CONFIG_LENGTH; j++)
+        for (UINT j = 0; j < CONFIG_LENGTH; j++)
             configuration[j] = rand() % 2;
 
         // cout << "config: ";
@@ -49,14 +54,15 @@ tuple<int, int> calculate_fitness(CAsim &sim, int *candidateRule)
         sim.set_init(candidateRule, configuration); // init simulator with init configuration and candidte rule
         sim.run_sim(STEPS);                         // run simulator (fce sim.run_sim)
 
-        int fitness = 0;
-        int fitnessMax = 0;
+        UINT fitness = 0;
+        UINT fitnessMax = 0;
         int *data = nullptr;         // pointer to computed data
         int *previousData = nullptr; // pointer to computed data
         int *pomData = nullptr;      // pointer to computed data
         bool stable = false;
         int best_step = 0; // the step in which we found the best solution
-        for (int j = 1; j < STEPS; j++)
+
+        for (UINT j = 1; j < STEPS; j++)
         {
             pomData = sim.get_states(j);
             if (previousData && isSameArray(previousData, pomData, CONFIG_LENGTH))
@@ -66,7 +72,7 @@ tuple<int, int> calculate_fitness(CAsim &sim, int *candidateRule)
             }
             data = pomData;
             fitness = 0;
-            for (int i = 0; i < CONFIG_LENGTH; i++)
+            for (UINT i = 0; i < CONFIG_LENGTH; i++)
             {
                 if (data[i] == expectedValue)
                 {
@@ -94,30 +100,36 @@ tuple<int, int> calculate_fitness(CAsim &sim, int *candidateRule)
 
 int main(int argc, char **argv)
 {
+    parseArguments(argc, argv);
+
+    ofstream statsFile;
+    statsFile.open("statistics.txt", ios_base::app);
+
     // population - only odd size
     GA_chromosome *population = new GA_chromosome[POPSIZE];
     GA_chromosome *next_population = new GA_chromosome[POPSIZE];
     srand(time(NULL));
-    best_ever = 0;
 
     CAsim sim(CONFIG_LENGTH, NEIGHBORHOOD, STEPS); // init new simulator
 
     GA_chromosome ind1_new, ind2_new;
-    UINT i1;
+    initialize(&ind1_new);
+    initialize(&ind2_new);
+    UINT randIndex;
     // initializace population
-    for (int i = 0; i < POPSIZE; i++)
+    for (UINT i = 0; i < POPSIZE; i++)
     {
+
         initialize(&population[i]);
-        // initialize(&next_population[i]);
+        initialize(&next_population[i]);
         population[i].evaluate = 1;
     }
 
-    int gen = 0;
-    for (gen = 0; gen < GENERATIONS; gen++)
+    for (UINT gen = 0; gen < GENERATIONS; gen++)
     {
         // cout << "Running generation number " << gen << endl;
         // evaluate fitness
-        for (int i = 0; i < POPSIZE; i++)
+        for (UINT i = 0; i < POPSIZE; i++)
         {
             if (population[i].evaluate)
             {
@@ -142,15 +154,15 @@ int main(int argc, char **argv)
             // turnaments of individuals
             for (UINT t = 0; t < TOUR; t++)
             {
-                i1 = urandom(0, POPSIZE - 1);
+                randIndex = urandom(0, POPSIZE - 1);
                 if (ind1 == NULL)
-                    ind1 = &population[i1];
+                    ind1 = &population[randIndex];
                 else if (ind2 == NULL)
-                    ind2 = &population[i1];
-                else if (population[i1].fitness > ind1->fitness)
-                    ind1 = &population[i1];
-                else if (population[i1].fitness > ind2->fitness)
-                    ind2 = &population[i1];
+                    ind2 = &population[randIndex];
+                else if (population[randIndex].fitness > ind1->fitness)
+                    ind1 = &population[randIndex];
+                else if (population[randIndex].fitness > ind2->fitness)
+                    ind2 = &population[randIndex];
             }
 
             // crossover
@@ -175,13 +187,15 @@ int main(int argc, char **argv)
             next_population[i + 1] = ind2_new;
         }
 
-        if (best_chromosome.fitness > best_ever)
+        if (best_chromosome.fitness > best_fitness_global)
         {
-            best_ever = best_chromosome.fitness;
-            cout << "Gen # " << gen << " fitness " << best_ever << endl;
+            best_fitness_global = best_chromosome.fitness;
+            best_fitness_generation = gen;
+            cout
+                << "Gen # " << gen << " fitness " << best_fitness_global << endl;
             // printRules(cout, best_chromosome.chromosome, RULES_LENGTH);
         }
-        if (best_ever == max_fitness)
+        if (best_fitness_global == MAX_FITNESS)
         {
             printf("Solution found; generation=%d\n", gen);
             break;
@@ -191,16 +205,20 @@ int main(int argc, char **argv)
     }
 
     cout << "Search ended" << endl;
-    cout << "Best fitness " << best_ever << " in " << gen << " generations " << endl;
+    cout << "Best fitness " << best_fitness_global << " in " << best_fitness_generation << " generations." << endl;
 
     printRules(cout, best_chromosome.chromosome, RULES_LENGTH);
     cout << "Rules: ";
     printRow(best_chromosome.chromosome, RULES_LENGTH);
-    // int br = calculate_fitness(sim, rules);
+    // UINT br = calculate_fitness(sim, rules);
     UINT bf = best_chromosome.fitness;
     UINT bstep = best_chromosome.best_step;
-    printf("Best fitness %d/%d (%.2f%%) in step (average) %d.\n", bf, max_fitness, ((float)bf / (float)max_fitness) * 100, bstep);
+    save_statistics(statsFile, best_chromosome, best_fitness_generation);
+    //printf("Best fitness %d/%d (%.2f%%) in step (average) %d.\n", bf, max_fitness, ((float)bf / (float)max_fitness) * 100, bstep);
+    printf("Best fitness %d/%d (%.2f%%) in step (average) %d.\n", bf, MAX_FITNESS, ((float)bf / (float)MAX_FITNESS) * 100, bstep);
     printf("Statistics in training: major black: %d, major white: %d\n", statistics[1], statistics[0]);
     delete[] population;
     delete[] next_population;
+
+    statsFile.close();
 }

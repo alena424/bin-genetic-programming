@@ -21,7 +21,6 @@ public:
 	{
 		states_mem_ = new int[steps_max_ * length_];
 		rules_length_ = pow(2, 2 * neighborhood + 1);
-		cout << "length is: " << RULES_LENGTH;
 		rules_ = new int[RULES_LENGTH];
 	}
 
