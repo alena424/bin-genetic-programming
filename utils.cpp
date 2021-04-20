@@ -139,7 +139,7 @@ void initialize(GA_chromosome *genome)
  **/
 void printRules(ostream &out, int *rules, int length)
 {
-    out << "JSON data: " << endl
+    out << "JSON data: "
         << "{"
         << "\"neighborhood\":" << NEIGHBORHOOD << ", "
         << "\"cellular_length\":" << CONFIG_LENGTH << ", "
@@ -153,7 +153,7 @@ void printRules(ostream &out, int *rules, int length)
         out << rules[i];
         if (i != length - 1)
         {
-            cout << ", ";
+            out << ", ";
         }
     }
     out << "]}" << endl;
@@ -233,9 +233,16 @@ void swapPointers(GA_chromosome **first, GA_chromosome **second)
 
 void save_statistics(ostream &StatsFile, GA_chromosome best_chromosome, UINT best_fitness_generation)
 {
-    StatsFile << best_chromosome.fitness << ","
-              << MAX_FITNESS << ","
-              << ((float)best_chromosome.fitness / (float)MAX_FITNESS) * 100 << ","
-              << best_chromosome.best_step << ","
-              << best_fitness_generation << endl;
+    StatsFile << NEIGHBORHOOD << ";"
+              << NUM_CONFIG << ";"
+              << CONFIG_LENGTH << ";"
+              << STEPS << ";"
+              << GENERATIONS << ";"
+              << POPSIZE << ";"
+              << best_chromosome.fitness << ";"
+              << MAX_FITNESS << ";"
+              << ((float)best_chromosome.fitness / (float)MAX_FITNESS) * 100 << ";"
+              << best_chromosome.best_step << ";"
+              << best_fitness_generation << ";";
+    printRules(StatsFile, best_chromosome.chromosome, RULES_LENGTH);
 }

@@ -116,6 +116,8 @@ int main(int argc, char **argv)
     initialize(&ind1_new);
     initialize(&ind2_new);
     UINT randIndex;
+    best_chromosome.fitness = 0;
+
     // initializace population
     for (UINT i = 0; i < POPSIZE; i++)
     {
@@ -127,15 +129,17 @@ int main(int argc, char **argv)
 
     for (UINT gen = 0; gen < GENERATIONS; gen++)
     {
-        // cout << "Running generation number " << gen << endl;
+        cout << "Running generation number " << gen << endl;
         // evaluate fitness
         for (UINT i = 0; i < POPSIZE; i++)
         {
             if (population[i].evaluate)
             {
+                // cout << gen << "evaluate" << endl;
                 std::tie(population[i].fitness, population[i].best_step) = calculate_fitness(sim, population[i].chromosome);
-                if (population[i].fitness >= best_chromosome.fitness)
+                if (population[i].fitness > best_chromosome.fitness)
                 {
+                    cout << "improved!" << population[i].fitness << endl;
                     best_chromosome = population[i];
                 }
                 population[i].evaluate = 0;
@@ -192,7 +196,7 @@ int main(int argc, char **argv)
             best_fitness_global = best_chromosome.fitness;
             best_fitness_generation = gen;
             cout
-                << "Gen # " << gen << " fitness " << best_fitness_global << endl;
+                << "Gen # " << gen << " fitness " << best_fitness_global << "/" << MAX_FITNESS << endl;
             // printRules(cout, best_chromosome.chromosome, RULES_LENGTH);
         }
         if (best_fitness_global == MAX_FITNESS)
