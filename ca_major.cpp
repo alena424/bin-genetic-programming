@@ -42,10 +42,11 @@ tuple<int, int> calculate_fitness(CAsim &sim, int *candidateRule)
             configuration[j] = rand() % 2;
 
         int expectedValue = computeMajorValue(configuration); // expected value will be one if there is more ones, 0 otherwise
-        statistics[expectedValue]++;
+        statistics[expectedValue]++;                          // add to statistics to know the distribution of data
         // cout << "expected: " << expectedValue << endl;
         sim.set_init(candidateRule, configuration); // init simulator with init configuration and candidte rule
         sim.run_sim(STEPS);                         // run simulator (fce sim.run_sim)
+        // printRules(cout, candidateRule, RULES_LENGTH);
 
         UINT fitness = 0;
         UINT fitness_max = 0;
@@ -98,7 +99,7 @@ int main(int argc, char **argv)
     statsFile.open("statistics.txt", ios_base::app);
 
     // population - only odd size
-    GA_chromosome *best_chromosome = new GA_chromosome(RULES_LENGTH); // the best solution
+    GA_chromosome *best_chromosome = new GA_chromosome(RULES_LENGTH, true); // the best solution
     // GA_chromosome *population = new GA_chromosome[POPSIZE];
     GA_chromosome **population = new GA_chromosome *[POPSIZE];
     GA_chromosome **next_population = new GA_chromosome *[POPSIZE];
@@ -107,14 +108,17 @@ int main(int argc, char **argv)
 
     CAsim sim(CONFIG_LENGTH, NEIGHBORHOOD, STEPS); // init new simulator
 
-    GA_chromosome *ind1_new = new GA_chromosome(RULES_LENGTH);
-    GA_chromosome *ind2_new = new GA_chromosome(RULES_LENGTH);
+    GA_chromosome *ind1_new = new GA_chromosome(RULES_LENGTH, true);
+    GA_chromosome *ind2_new = new GA_chromosome(RULES_LENGTH, true);
     UINT i1;
     // initializace population
     for (UINT i = 0; i < POPSIZE; i++)
     {
-        population[i] = new GA_chromosome(RULES_LENGTH);
-        next_population[i] = new GA_chromosome(RULES_LENGTH);
+        population[i] = new GA_chromosome(RULES_LENGTH, false);
+        cout << "init> ";
+        printRules(cout, population[i]->chromosome, RULES_LENGTH);
+
+        next_population[i] = new GA_chromosome(RULES_LENGTH, false);
         population[i]->evaluate = 1;
     }
 
@@ -127,8 +131,10 @@ int main(int argc, char **argv)
             if (population[i]->evaluate)
             {
                 std::tie(population[i]->fitness, population[i]->best_step) = calculate_fitness(sim, population[i]->chromosome);
+                cout << "fitness" << population[i]->fitness << endl;
                 if (population[i]->fitness >= best_chromosome->fitness)
                 {
+                    cout << "chamged!" << population[i]->fitness << ">=" << best_chromosome->fitness << endl;
                     best_chromosome = population[i];
                 }
                 population[i]->evaluate = 0;
@@ -187,7 +193,7 @@ int main(int argc, char **argv)
             best_fitness_generation = gen;
             cout
                 << "Gen # " << gen << " fitness " << best_fitness_global << endl;
-            // printRules(cout, best_chromosome.chromosome, RULES_LENGTH);
+            printRules(cout, best_chromosome->chromosome, RULES_LENGTH);
         }
         if (best_fitness_global == MAX_FITNESS)
         {
@@ -208,7 +214,7 @@ int main(int argc, char **argv)
     // int br = calculate_fitness(sim, rules);
     UINT bf = best_chromosome->fitness;
     UINT bstep = best_chromosome->best_step;
-    // save_statistics(statsFile, best_chromosome, best_fitness_generation);
+    save_statistics(statsFile, best_chromosome, best_fitness_generation);
     printf("Best fitness %d/%d (%.2f%%) in step (average) %d.\n", bf, MAX_FITNESS, ((float)bf / (float)MAX_FITNESS) * 100, bstep);
     printf("Statistics in training: major black: %d, major white: %d\n", statistics[1], statistics[0]);
 

@@ -61,7 +61,6 @@ int parseArguments(int argc, char **argv)
     return 1;
 }
 
-
 /**
  * @brief Crossover 2 parents and get 2 crossed children
  * @author (c) MICHAL BIDLO, 2011 (VZOROVA IMPLEMENTACE JEDNODUCHEHO GENETICKEHO ALGORITMU) 
@@ -206,11 +205,11 @@ void swapPointers(GA_chromosome **first[], GA_chromosome **second[])
     *second = temp;
 }
 
-void save_statistics(ostream &StatsFile, GA_chromosome best_chromosome, int best_fitness_generation)
+void save_statistics(ostream &StatsFile, GA_chromosome *best_chromosome, UINT best_fitness_generation)
 {
-    StatsFile << best_chromosome.fitness << ","
+    StatsFile << best_chromosome->fitness << ","
               << MAX_FITNESS << ","
-              << ((float)best_chromosome.fitness / (float)MAX_FITNESS) * 100 << ","
-              << best_chromosome.best_step << ","
+              << ((float)best_chromosome->fitness / (float)MAX_FITNESS) * 100 << ","
+              << best_chromosome->best_step << ","
               << best_fitness_generation << endl;
 }
