@@ -79,11 +79,11 @@ void initialize(GA_chromosome *genome)
  **/
 void printRules(ostream &out, int *rules, int length)
 {
-    out << "JSON data: " << endl
+    out << "JSON data: "
         << "{"
-        << "\"neighborhood\":" << NEIGHBORHOOD << "; "
-        << "\"cellular_length\":" << CONFIG_LENGTH << "; "
-        << "\"steps\":" << STEPS << "; ";
+        << "\"neighborhood\":" << NEIGHBORHOOD << ", "
+        << "\"cellular_length\":" << CONFIG_LENGTH << ", "
+        << "\"steps\":" << STEPS << ", ";
     out << "\""
         << "data"
         << "\": [";
@@ -93,7 +93,7 @@ void printRules(ostream &out, int *rules, int length)
         out << rules[i];
         if (i != length - 1)
         {
-            out << "; ";
+            out << ", ";
         }
     }
     out << "]}" << endl;

@@ -1,8 +1,8 @@
 #define NEIGHBORHOOD 3   // number of cells from left and right of the main cell that will be computed with current cell
 #define NUM_CONFIG 2000  // number of random configuration that will be used to somlue fitness, space 2^cellular_length
 #define GENERATIONS 30   // number of generations
-#define POPSIZE 1000     // size of population
-#define STEPS 20         // number of steps for cullular automata to count fitness
+#define POPSIZE 10000     // size of population
+#define STEPS 40         // number of steps for cullular automata to count fitness
 #define CONFIG_LENGTH 11 // length of input configuration
 #define MUTAGENES 2      // number of mutations
 #define PCROSS 80        // probability of crossover
