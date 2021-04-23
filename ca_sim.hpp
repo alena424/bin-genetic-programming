@@ -27,6 +27,7 @@ public:
 	~CAsim()
 	{
 		delete[] states_mem_;
+		delete[] rules_;
 	}
 
 	/** 

@@ -130,6 +130,7 @@ void initialize(GA_chromosome *genome)
         genome->chromosome[i] = urandom(0, 1);
     }
     genome->fitness = 0;
+    genome->best_step = 0;
 }
 
 /**

@@ -1,7 +1,7 @@
 #!/bin/bash
 echo "Lets start..."
 
-RUNS=1
+RUNS=10
 statsFileName="statistics.txt"
 
 # Configuration no. 1

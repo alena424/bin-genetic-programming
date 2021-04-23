@@ -17,8 +17,6 @@
 
 using namespace std;
 
-GA_chromosome best_chromosome; // the best solution
-
 UINT best_fitness_global = 0;    // fitness of the best one
 int best_fitness_generation = 0; // generation with the best fitness (for global analysis)
 
@@ -93,7 +91,7 @@ tuple<int, int> calculate_fitness(CAsim &sim, int *candidateRule)
         }
         best_step_global += best_step;
     }
-    delete[] configuration;
+    //delete[] configuration;
     // return fitnessMaxFinal;
     return make_tuple(fitnessMaxFinal, best_step_global / NUM_CONFIG);
 }
@@ -101,6 +99,7 @@ tuple<int, int> calculate_fitness(CAsim &sim, int *candidateRule)
 int main(int argc, char **argv)
 {
     parseArguments(argc, argv);
+    GA_chromosome best_chromosome; // the best solution
 
     ofstream statsFile;
     statsFile.open("statistics.txt", ios_base::app);
@@ -135,9 +134,9 @@ int main(int argc, char **argv)
         {
             if (population[i].evaluate)
             {
-                // cout << gen << "evaluate" << endl;
                 std::tie(population[i].fitness, population[i].best_step) = calculate_fitness(sim, population[i].chromosome);
-                if (population[i].fitness > best_chromosome.fitness)
+                cout << gen << " evaluate" << population[i].fitness << "?" << endl;
+                if (population[i].fitness >= best_chromosome.fitness)
                 {
                     cout << "improved!" << population[i].fitness << endl;
                     best_chromosome = population[i];
@@ -145,15 +144,19 @@ int main(int argc, char **argv)
                 population[i].evaluate = 0;
             }
         }
+        cout << gen << "ereee1" << endl;
         // elitizmus
         next_population[0] = best_chromosome; // so far the best found individual
         GA_chromosome mutant = best_chromosome;
+        cout << gen << "ereee1.5" << endl;
         mutator(&mutant, unit);
         next_population[1] = mutant; // mutant of the best
+        cout << gen << "ereee2" << endl;
 
         // Create new population
         for (UINT i = 2; i < POPSIZE; i += 2)
         {
+            cout << i << "ereee" << endl;
             GA_chromosome *ind1 = NULL, *ind2 = NULL;
             // turnaments of individuals
             for (UINT t = 0; t < TOUR; t++)
@@ -208,7 +211,8 @@ int main(int argc, char **argv)
         swapPointers(&population, &next_population);
     }
 
-    cout << "Search ended" << endl;
+    cout
+        << "Search ended" << endl;
     cout << "Best fitness " << best_fitness_global << " in " << best_fitness_generation << " generations." << endl;
 
     printRules(cout, best_chromosome.chromosome, RULES_LENGTH);
@@ -221,8 +225,8 @@ int main(int argc, char **argv)
     //printf("Best fitness %d/%d (%.2f%%) in step (average) %d.\n", bf, max_fitness, ((float)bf / (float)max_fitness) * 100, bstep);
     printf("Best fitness %d/%d (%.2f%%) in step (average) %d.\n", bf, MAX_FITNESS, ((float)bf / (float)MAX_FITNESS) * 100, bstep);
     printf("Statistics in training: major black: %d, major white: %d\n", statistics[1], statistics[0]);
-    delete[] population;
-    delete[] next_population;
+    //delete[] population;
+    //delete[] next_population;
 
     statsFile.close();
 }
