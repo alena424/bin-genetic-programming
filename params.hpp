@@ -1,4 +1,4 @@
-#define NEIGHBORHOOD 2   // number of cells from left and right of the main cell that will be computed with current cell
+#define NEIGHBORHOOD 3   // number of cells from left and right of the main cell that will be computed with current cell
 #define NUM_CONFIG 2000  // number of random configuration that will be used to somlue fitness, space 2^cellular_length
 #define GENERATIONS 30   // number of generations
 #define POPSIZE 1000     // size of population

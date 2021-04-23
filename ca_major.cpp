@@ -17,6 +17,7 @@ using namespace std;
 
 GA_chromosome best_chromosome; // the best solution
 UINT best_fitness_generation;  // fitness of the best one
+UINT best_generation;  // the est generation
 
 /**
  * @brief Compute fitness for candidate solution
@@ -100,7 +101,8 @@ int main(int argc, char **argv)
     GA_chromosome *next_population = new GA_chromosome[POPSIZE];
     srand(time(NULL));
     best_fitness_generation = 0;
-
+    best_generation = 0;
+    
     CAsim sim(CONFIG_LENGTH, NEIGHBORHOOD, STEPS); // init new simulator
 
     GA_chromosome ind1_new, ind2_new;
@@ -179,6 +181,7 @@ int main(int argc, char **argv)
         if (best_chromosome.fitness > best_fitness_generation)
         {
             best_fitness_generation = best_chromosome.fitness;
+            best_generation = gen;
             cout << "Gen # " << gen << " fitness " << best_fitness_generation << endl;
             // printRules(cout, best_chromosome.chromosome, RULES_LENGTH);
         }
@@ -192,7 +195,7 @@ int main(int argc, char **argv)
     }
 
     cout << "Search ended" << endl;
-    cout << "Best fitness " << best_fitness_generation << " in " << gen << " generations " << endl;
+    cout << "Best fitness " << best_fitness_generation << " in " << best_generation << " generations " << endl;
 
     printRules(cout, best_chromosome.chromosome, RULES_LENGTH);
     cout << "Rules: ";
@@ -202,7 +205,7 @@ int main(int argc, char **argv)
     UINT bstep = best_chromosome.best_step;
     ofstream statsFile;
     statsFile.open("statistics.txt", ios_base::app);
-    save_statistics(statsFile, best_chromosome, best_fitness_generation);
+    save_statistics(statsFile, best_chromosome, best_generation);
     printf("Best fitness %d/%d (%.2f%%) in step (average) %d.\n", bf, MAX_FITNESS, ((float)bf / (float)MAX_FITNESS) * 100, bstep);
     printf("Statistics in training: major black: %d, major white: %d\n", statistics[1], statistics[0]);
     delete[] population;
