@@ -52,40 +52,32 @@ tuple<int, int> calculate_fitness(CAsim &sim, int *candidateRule)
         sim.run_sim(STEPS);                         // run simulator (fce sim.run_sim)
 
         int fitness = 0;
-        int fitnessMax = 0;
         int *data = nullptr;         // pointer to computed data
         int *previousData = nullptr; // pointer to computed data
-        int *pomData = nullptr;      // pointer to computed data
         bool stable = false;
         int best_step = 0; // the step in which we found the best solution
         for (int j = 1; j < STEPS; j++)
         {
-            pomData = sim.get_states(j);
-            if (previousData && isSameArray(previousData, pomData, CONFIG_LENGTH))
+            data = sim.get_states(j);
+            if (previousData && isSameArray(previousData, data, CONFIG_LENGTH))
             {
+            	for (int i = 0; i < CONFIG_LENGTH; i++)
+	            {
+	                if (data[i] == expectedValue)
+	                {
+	                    fitness++; // increment fitness if values match
+	                }
+	            }
+
                 stable = true; // we want the result to be stable and not recursive
                 break;
-            }
-            data = pomData;
-            fitness = 0;
-            for (int i = 0; i < CONFIG_LENGTH; i++)
-            {
-                if (data[i] == expectedValue)
-                {
-                    fitness++; // increment fitness if values match
-                }
-            }
-            if (fitness > fitnessMax) // save the best fitness score
-            {
-                fitnessMax = fitness;
-                best_step = j;
             }
             previousData = data;
         }
         // we want only stable rules and the correct ones
-        if (stable && fitnessMax == CONFIG_LENGTH)
+        if (stable && fitness == CONFIG_LENGTH)
         {
-            fitnessMaxFinal += fitnessMax;
+            fitnessMaxFinal += fitness;
         }
         best_step_global += best_step;
     }
