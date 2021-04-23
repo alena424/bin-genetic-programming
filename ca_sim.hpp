@@ -20,14 +20,14 @@ public:
 	CAsim(int length, int neighborhood, int steps_max) : length_(length), neighborhood_(neighborhood), steps_max_(steps_max)
 	{
 		states_mem_ = new int[steps_max_ * length_];
-		rules_length_ = pow(2, 2 * neighborhood + 1);
-		cout << "length is: " << RULES_LENGTH;
+		rules_length_ = RULES_LENGTH;
 		rules_ = new int[RULES_LENGTH];
 	}
 
 	~CAsim()
 	{
 		delete[] states_mem_;
+		delete[] rules_;
 	}
 
 	/** 

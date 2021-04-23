@@ -13,7 +13,7 @@
 typedef unsigned int UINT;
 
 const unsigned int unit = 100; // unit
-UINT max_fitness = CONFIG_LENGTH * NUM_CONFIG;
+UINT MAX_FITNESS = CONFIG_LENGTH * NUM_CONFIG;
 const int RULES_LENGTH = pow(2, 2 * NEIGHBORHOOD + 1); // number of rules (combination of zeros and ones in neighborhood))
 int statistics[2];                                     // count major black and white for statistics
 

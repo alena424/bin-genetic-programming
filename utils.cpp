@@ -93,7 +93,7 @@ void printRules(ostream &out, int *rules, int length)
         out << rules[i];
         if (i != length - 1)
         {
-            cout << ", ";
+            out << ", ";
         }
     }
     out << "]}" << endl;
@@ -169,4 +169,20 @@ void swapPointers(GA_chromosome **first, GA_chromosome **second)
     GA_chromosome *temp = *first;
     *first = *second;
     *second = temp;
+}
+
+void save_statistics(ostream &StatsFile, GA_chromosome best_chromosome, UINT best_fitness_generation)
+{
+    StatsFile << NEIGHBORHOOD << ";"
+              << NUM_CONFIG << ";"
+              << CONFIG_LENGTH << ";"
+              << STEPS << ";"
+              << GENERATIONS << ";"
+              << POPSIZE << ";"
+              << best_chromosome.fitness << ";"
+              << MAX_FITNESS << ";"
+              << ((float)best_chromosome.fitness / (float)MAX_FITNESS) * 100 << ";"
+              << best_chromosome.best_step << ";"
+              << best_fitness_generation << ";";
+    printRules(StatsFile, best_chromosome.chromosome, RULES_LENGTH);
 }
